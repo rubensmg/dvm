@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+
+set -a
+
+NVM_DIR="$HOME/.nvm"
+NVM_SRC_DIR="$NVM_DIR/src"
+NVM_BIN_DIR="$NVM_DIR/cache"
+INSTALL_DIR="$HOME/.local"
+THIS_DIR=$(pwd)
+
+LOG() {
+    echo "[$1] - [$(date +%F)] - $@"
+}
+
+INSTALL() {
+    UNINSTALL
+    [[ $1 -eq "" ]] && { LOG ERROR "You need pass the version of NodeJS"; exit 1; }
+    LOG INFO "Starting the installation of NodeJS $1"
+    if [[ ! -d $NVM_SRC_DIR ]]; then
+        mkdir -p $NVM_SRC_DIR
+        LOG INFO "Cloning repository $1"
+        git clone https://github.com/nodejs/node.git $NVM_SRC_DIR > /dev/null
+        [[ ! $? -eq 0 ]] && { LOG ERROR "An error occuor to clone the Repository"; rm -rf $NVM_SRC_DIR; exit 1; }
+    fi
+    cd $NVM_SRC_DIR
+    git checkout "v$1.x"
+    LOG INFO "Starting configuration"
+    ./configure
+    [[ ! $? -eq 0 ]] && { LOG ERROR "An error occur to run ./configure, please read the error logs"; exit 1; }
+    LOG INFO "Starting build"
+    make -j4
+    [[ ! $? -eq 0 ]] && { LOG ERROR "An error occur to run make, please read the error logs"; exit 1; }
+    LOG INFO "Starting install in $INSTALL_DIR"
+    mkdir $NVM_BIN_DIR/$1
+    make install PREFIX=$NVM_BIN_DIR/$1
+    [[ ! $? -eq 0 ]] && { LOG ERROR "An error occur to run install, please read the error logs"; exit 1; }
+    LOG INFO "Success to install NodeJS $1"
+    LOG INFO "Clean the install assets"
+    make clean
+    cd $THIS_DIR
+    LOG INFO "You may need run 'nvm use $1' to use this version"
+}
+
+USE() {
+    LOG INFO "You are about to use the NodeJS $1"
+    ln -sf $NVM_BIN_DIR/bin/node $INSTALL_DIR/bin/node
+    [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occur when we create the symlink"; exit 1; }
+    echo $1 > $NVM_DIR/CURRENT_VERSION
+    LOG INFO "Success to create the symlink"
+}
+
+UNINSTALL() {
+    rm -f $INSTALL_DIR/bin/node
+}
+
+case $1 in
+--install|-i) INSTALL $2 ;;
+--uninstall|-r) UNINSTALL ;;
+--use|-u) USE $2 ;;
+--help|-h) echo "Not implemented" ;;
+*) "Not implemented" ;;
+esac
