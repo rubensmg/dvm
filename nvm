@@ -43,8 +43,12 @@ INSTALL() {
 
 USE() {
     LOG INFO "You are about to use the NodeJS $1"
-    ln -sf $NVM_BIN_DIR/bin/node $INSTALL_DIR/bin/node
-    [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occur when we create the symlink"; exit 1; }
+    ln -sf $NVM_BIN_DIR/$1/bin/node $INSTALL_DIR/bin/node
+    [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occur when we create the symlink for node"; exit 1; }
+    ln -sf $NVM_BIN_DIR/$1/bin/npm $INSTALL_DIR/bin/npm
+    [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occur when we create the symlink for npm"; exit 1; }
+    ln -sf $NVM_BIN_DIR/$1/bin/npx $INSTALL_DIR/bin/npx
+    [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occur when we create the symlink for npx"; exit 1; }
     echo $1 > $NVM_DIR/CURRENT_VERSION
     LOG INFO "Success to create the symlink"
 }
