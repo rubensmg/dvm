@@ -41,13 +41,17 @@ INSTALL() {
     LOG INFO "You may need run 'nvm -m $1' to use this version"
 }
 
-MAKE() {
+GLOBAL() {
     LOG INFO "You are about to use the NodeJS $1"
     [[ ! -e "$NVM_BIN_DIR/$1/bin/node" ]] && { LOG ERROR "The version $1 was not found, you can install using nvm -i $1, "; exit 1; }
-    ln -sf "$NVM_BIN_DIR/$1/bin/node" "$INSTALL_DIR/bin/node"
-    [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occuor when we create the symlink"; exit 1; }
-    echo "$1" > $NVM_DIR/CURRENT_VERSION
-    LOG INFO "Success to create the symlink"
+    ln -sf $NVM_BIN_DIR/$1/bin/node $INSTALL_DIR/bin/node
+    [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occuor when we create the symlink for node"; exit 1; }
+    ln -sf $NVM_BIN_DIR/$1/bin/npm $INSTALL_DIR/bin/npm
+    [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occuor when we create the symlink for npm"; exit 1; }
+    ln -sf $NVM_BIN_DIR/$1/bin/npx $INSTALL_DIR/bin/npx
+    [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occuor when we create the symlink for npx"; exit 1; }
+    echo $1 > $NVM_DIR/CURRENT_VERSION
+    LOG INFO "Success to create all symlink"
 }
 
 UNINSTALL() {
@@ -57,7 +61,7 @@ UNINSTALL() {
 case $1 in
 --install|-i) INSTALL $2 ;;
 --uninstall|-r) UNINSTALL ;;
---make|-m) MAKE $2 ;;
+--global|-g) GLOBAL $2 ;;
 --help|-h) echo "Not implemented" ;;
 *) "Not implemented" ;;
 esac
