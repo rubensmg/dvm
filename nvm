@@ -13,8 +13,7 @@ LOG() {
 }
 
 INSTALL() {
-    UNINSTALL
-    [[ $1 -eq "" ]] && { LOG ERROR "You need pass the version of NodeJS"; exit 1; }
+    [[ "$1" -eq "" ]] && { LOG ERROR "You need pass the version of NodeJS"; exit 1; }
     LOG INFO "Starting the installation of NodeJS $1"
     if [[ ! -d $NVM_SRC_DIR ]]; then
         mkdir -p $NVM_SRC_DIR
@@ -23,29 +22,31 @@ INSTALL() {
         [[ ! $? -eq 0 ]] && { LOG ERROR "An error occuor to clone the Repository"; rm -rf $NVM_SRC_DIR; exit 1; }
     fi
     cd $NVM_SRC_DIR
-    git checkout "v$1.x"
+    git fetch && git fetch --tags && git checkout "v$1" &>> /dev/null
+    [[ ! $? -eq 0 ]] && { LOG ERROR "The version $1 not exits"; exit 1; }
     LOG INFO "Starting configuration"
     ./configure
-    [[ ! $? -eq 0 ]] && { LOG ERROR "An error occur to run ./configure, please read the error logs"; exit 1; }
+    [[ ! $? -eq 0 ]] && { LOG ERROR "An error occuor to run ./configure, please read the error logs"; exit 1; }
     LOG INFO "Starting build"
     make -j4
-    [[ ! $? -eq 0 ]] && { LOG ERROR "An error occur to run make, please read the error logs"; exit 1; }
+    [[ ! $? -eq 0 ]] && { LOG ERROR "An error occuor to run make, please read the error logs"; exit 1; }
     LOG INFO "Starting install in $INSTALL_DIR"
-    mkdir $NVM_BIN_DIR/$1
-    make install PREFIX=$NVM_BIN_DIR/$1
-    [[ ! $? -eq 0 ]] && { LOG ERROR "An error occur to run install, please read the error logs"; exit 1; }
+    mkdir "$NVM_BIN_DIR/$1"
+    make install PREFIX="$NVM_BIN_DIR/$1"
+    [[ ! $? -eq 0 ]] && { LOG ERROR "An error occuor to run install, please read the error logs"; exit 1; }
     LOG INFO "Success to install NodeJS $1"
     LOG INFO "Clean the install assets"
     make clean
     cd $THIS_DIR
-    LOG INFO "You may need run 'nvm use $1' to use this version"
+    LOG INFO "You may need run 'nvm -m $1' to use this version"
 }
 
-USE() {
+MAKE() {
     LOG INFO "You are about to use the NodeJS $1"
-    ln -sf $NVM_BIN_DIR/bin/node $INSTALL_DIR/bin/node
-    [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occur when we create the symlink"; exit 1; }
-    echo $1 > $NVM_DIR/CURRENT_VERSION
+    [[ ! -e "$NVM_BIN_DIR/$1/bin/node" ]] && { LOG ERROR "The version $1 was not found, you can install using nvm -i $1, "; exit 1; }
+    ln -sf "$NVM_BIN_DIR/$1/bin/node" "$INSTALL_DIR/bin/node"
+    [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occuor when we create the symlink"; exit 1; }
+    echo "$1" > $NVM_DIR/CURRENT_VERSION
     LOG INFO "Success to create the symlink"
 }
 
@@ -56,7 +57,7 @@ UNINSTALL() {
 case $1 in
 --install|-i) INSTALL $2 ;;
 --uninstall|-r) UNINSTALL ;;
---use|-u) USE $2 ;;
+--make|-m) MAKE $2 ;;
 --help|-h) echo "Not implemented" ;;
 *) "Not implemented" ;;
 esac
