@@ -13,7 +13,7 @@ LOG() {
 }
 
 INSTALL() {
-    [[ "$1" -eq "" ]] && { LOG ERROR "You need pass the version of NodeJS"; exit 1; }
+    [[ -z $1 ]] && { LOG ERROR "You need pass the version of NodeJS"; exit 1; }
     LOG INFO "Starting the installation of NodeJS $1"
     if [[ ! -d $NVM_SRC_DIR ]]; then
         mkdir -p $NVM_SRC_DIR
@@ -45,11 +45,11 @@ USE() {
     LOG INFO "You are about to use the NodeJS $1"
     rm -f $INSTALL_DIR/bin/node $INSTALL_DIR/bin/npm $INSTALL_DIR/bin/npx
     [[ ! -e "$NVM_BIN_DIR/$1/bin/node" ]] && { LOG ERROR "The version $1 was not found, you can install using nvm -i $1, "; exit 1; }
-    ln -sf $NVM_BIN_DIR/$1/bin/node $INSTALL_DIR/bin/node
+    ln -sf "$NVM_BIN_DIR/$1/bin/node" $INSTALL_DIR/bin/node
     [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occuor when we create the symlink for node"; exit 1; }
-    ln -sf $NVM_BIN_DIR/$1/bin/npm $INSTALL_DIR/bin/npm
+    ln -sf "$NVM_BIN_DIR/$1/bin/npm" $INSTALL_DIR/bin/npm
     [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occuor when we create the symlink for npm"; exit 1; }
-    ln -sf $NVM_BIN_DIR/$1/bin/npx $INSTALL_DIR/bin/npx
+    ln -sf "$NVM_BIN_DIR/$1/bin/npx" $INSTALL_DIR/bin/npx
     [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occuor when we create the symlink for npx"; exit 1; }
     echo $1 > $NVM_DIR/CURRENT_VERSION
     LOG INFO "Success to create all symlink"
