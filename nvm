@@ -43,14 +43,12 @@ INSTALL() {
 
 USE() {
     LOG INFO "You are about to use the NodeJS $1"
-    rm -f $INSTALL_DIR/bin/node $INSTALL_DIR/bin/npm $INSTALL_DIR/bin/npx
     [[ ! -e "$NVM_BIN_DIR/$1/bin/node" ]] && { LOG ERROR "The version $1 was not found, you can install using nvm -i $1, "; exit 1; }
-    ln -sf "$NVM_BIN_DIR/$1/bin/node" $INSTALL_DIR/bin/node
-    [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occuor when we create the symlink for node"; exit 1; }
-    ln -sf "$NVM_BIN_DIR/$1/bin/npm" $INSTALL_DIR/bin/npm
-    [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occuor when we create the symlink for npm"; exit 1; }
-    ln -sf "$NVM_BIN_DIR/$1/bin/npx" $INSTALL_DIR/bin/npx
-    [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occuor when we create the symlink for npx"; exit 1; }
+    list_binaries=("node" "npm" "npx")
+    for binary in ${list_binaries[@]}; do
+      [[ -e $binary ]] && rm -f $INSTALL_DIR/bin/$binary
+      [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occuor when we create the symlink for $binary"; exit 1; }
+    done
     echo $1 > $NVM_DIR/CURRENT_VERSION
     LOG INFO "Success to create all symlink"
 }
