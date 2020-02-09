@@ -1,61 +1,83 @@
 #!/usr/bin/env bash
 
-set -a
+set -e
 
+NODE_JS_REPO_DIST=https://nodejs.org/dist
 NVM_DIR="$HOME/.nvm"
-NVM_SRC_DIR="$NVM_DIR/src"
-NVM_BIN_DIR="$NVM_DIR/cache"
-INSTALL_DIR="$HOME/.local"
-THIS_DIR=$(pwd)
+NVM_DIR_CURRENT="$NVM_DIR/current"
+NVM_DIR_CURRENT_BIN="$NVM_DIR_CURRENT/bin"
+USER_DIR_BIN="$HOME/.local/bin"
 
-LOG() {
-    echo "[$1] - [$(date +%F)] - $@"
+_LOG() {
+    echo "[$(date +%F) - $1] - $2"
 }
 
 INSTALL() {
-    [[ -z $1 ]] && { LOG ERROR "You need pass the version of NodeJS"; exit 1; }
-    LOG INFO "Starting the installation of NodeJS $1"
-    if [[ ! -d $NVM_SRC_DIR ]]; then
-        mkdir -p $NVM_SRC_DIR
-        LOG INFO "Cloning repository $1"
-        git clone https://github.com/nodejs/node.git $NVM_SRC_DIR > /dev/null
-        [[ ! $? -eq 0 ]] && { LOG ERROR "An error occuor to clone the Repository"; rm -rf $NVM_SRC_DIR; exit 1; }
-    fi
-    cd $NVM_SRC_DIR
-    git fetch && git fetch --tags && git checkout "v$1" &>> /dev/null
-    [[ ! $? -eq 0 ]] && { LOG ERROR "The version $1 not exits"; exit 1; }
-    LOG INFO "Starting configuration"
-    ./configure
-    [[ ! $? -eq 0 ]] && { LOG ERROR "An error occuor to run ./configure, please read the error logs"; exit 1; }
-    LOG INFO "Starting build"
-    make -j4
-    [[ ! $? -eq 0 ]] && { LOG ERROR "An error occuor to run make, please read the error logs"; exit 1; }
-    LOG INFO "Starting install in $INSTALL_DIR"
-    mkdir "$NVM_BIN_DIR/$1"
-    make install PREFIX="$NVM_BIN_DIR/$1"
-    [[ ! $? -eq 0 ]] && { LOG ERROR "An error occuor to run install, please read the error logs"; exit 1; }
-    LOG INFO "Success to install NodeJS $1"
-    LOG INFO "Clean the install assets"
-    make clean
-    cd $THIS_DIR
-    LOG INFO "You may need run 'nvm -m $1' to use this version"
+    [[ -z $1 ]] && { _LOG ERROR "You need pass the version of NodeJS"; exit 1; }
+    _LOG INFO "Starting the installation of NodeJS $1"
+    local nvm_version_dir=$NVM_DIR/$1
+    [[ -d $nvm_version_dir ]] && { _LOG WARN "The version $1 exists, you may need run 'nvm -s $1' to use this version"; exit 0; } || mkdir -p $nvm_version_dir
+    http_code=$(curl -s -I -o /dev/null -w "%{http_code}" $NODE_JS_REPO_DIST/v$1)
+    [[ $http_code == "404" ]] && { _LOG ERROR "The version $1 not exists"; exit 1; }
+    curl -s https://nodejs.org/dist/v$1/node-v$1-linux-x64.tar.gz -o /tmp/node.tar.gz
+    tar -xzf /tmp/node.tar.gz --strip-components=1 -C $NVM_DIR/$1
+    # TODO: Checksum
+    rm -f /tmp/node.tar.gz
+    _LOG INFO "You may need run 'nvm -s $1' to use this version"
 }
 
-USE() {
-    LOG INFO "You are about to use the NodeJS $1"
-    [[ ! -e "$NVM_BIN_DIR/$1/bin/node" ]] && { LOG ERROR "The version $1 was not found, you can install using nvm -i $1, "; exit 1; }
-    list_binaries=("node" "npm" "npx")
+SET() {
+    _LOG INFO "Setting version $1"
+    rm -rf $NVM_DIR_CURRENT/* && cp -ar $NVM_DIR/$1/* $NVM_DIR_CURRENT
+    [[ $? != "0" ]]  && { _LOG ERROR "Cannot set $1 to current"; exit 1; }
+    list_binaries=$(ls $NVM_DIR_CURRENT_BIN)
     for binary in ${list_binaries[@]}; do
-      [[ -e $binary ]] && rm -f $INSTALL_DIR/bin/$binary
-      [[ ! $? -eq 0 ]] &&  { LOG ERROR "An error occuor when we create the symlink for $binary"; exit 1; }
+        rm -f $BIN_DIR
+        ln -sf "$NVM_DIR_CURRENT_BIN/$binary" "$USER_DIR_BIN/$binary"
     done
-    echo $1 > $NVM_DIR/CURRENT_VERSION
-    LOG INFO "Success to create all symlink"
+    _LOG INFO "Succcess to set version $1"
+}
+
+GET_CURRENT_VERSION() {
+    [[ ! -e $USER_DIR_BIN/node ]] && { LOG WARN "There is no version installed, you need run 'nvm -i <version>'"; exit 0; }
+cat << EOF
+Node Version: $($USER_DIR_BIN/node --version)
+NPM Version: $($USER_DIR_BIN/npm --version)
+NPX Version: $($USER_DIR_BIN/npx --version)
+EOF
+}
+
+LIST_VERSIONS() {
+    curl -s $NODE_JS_REPO_DIST/ | awk -F '[<>]' '{ if ($3 ~ /^v/) {print substr(substr($3, 1, length($3)-1), 2, length($3)-1) }}' | less
+}
+
+HELP() {
+cat << EOF
+NAME
+    nvm - Node Version Manager
+
+USAGE
+    nvm [OPTIONS] [ARGS]
+
+OPTIONS
+    -h, --help
+        Show this text
+    -c, --current
+        Get the version of node, npm and npx in using at the moment
+    -l, --list
+        List all available versions from Node Repository
+    -i, --install <version>
+        Install a version from Node Repository
+    -s, --set <version>
+        Set a version that was installed
+EOF
 }
 
 case $1 in
+--list|-l) LIST_VERSIONS ;;
 --install|-i) INSTALL $2 ;;
---use|-u) USE $2 ;;
---help|-h) echo "Not implemented" ;;
-*) "Not implemented" ;;
+--set|-s) SET $2 ;;
+--current|-c) GET_CURRENT_VERSION ;;
+--help|-h) HELP;;
+*) HELP ;;
 esac
