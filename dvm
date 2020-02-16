@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+
+set -e
+
+export DVM_BASE_DIR="$HOME/.dvm"
+export DVM_MODULES_DIR="$DVM_BASE_DIR/modules"
+export DVM_LANGUAGES_DIR="$DVM_BASE_DIR/lang"
+export USER_DIR_BIN="$HOME/.local/bin"
+
+LOG() {
+    echo "[$(date +%F) - $1] - $2"
+}
+
+INSTALL() {
+    [[ ! -d $DVM_BASE_DIR ]] && mkdir $DVM_BASE_DIR
+    [[ ! -d $DVM_LANGUAGES_DIR ]] && mkdir $DVM_LANGUAGES_DIR
+    [[ ! -d $USER_DIR_BIN ]] && { mkdir -p $USER_DIR_BIN; echo 'export PATH="$PATH:$HOME/.local/bin' >> $HOME/.bashrc; }
+    rm -rdf $DVM_BASE_DIR/modules && cp -ar ./modules $DVM_BASE_DIR/
+    rm -f $DVM_BASE_DIR/dvm && cp -ar ./dvm $DVM_BASE_DIR/
+    chmod 744 $DVM_BASE_DIR/dvm
+    ln -sf $DVM_BASE_DIR/dvm $USER_DIR_BIN/dvm
+}
+
+HELP() {
+cat << EOF
+NAME
+    dvm - Developer Version Manager
+
+USAGE
+    dvm [OPTIONS] [ARGS]
+    dvm [MODULES] [OPTIONS] [ARGS]
+    
+MODULES
+    node
+
+OPTIONS
+    -h, --help
+        Show this text
+    -i, --install
+        Install this CLI 
+EOF
+}
+
+case $1 in
+-h|--help) HELP ;;
+-i|--install) INSTALL ;;
+*)
+[[ -z $1 ]] && { LOG ERROR "You need specify a module or use --help for more information"; exit 1; }
+[[ ! -e $DVM_BASE_DIR/modules/$1 ]] && { LOG ERROR "The module $1 not exists, use --help for more information"; exit 1; }
+source $DVM_BASE_DIR/modules/$1 ${@:2}
+;;
+esac

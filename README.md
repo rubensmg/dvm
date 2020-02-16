@@ -1,46 +1,54 @@
-# NVM - Node Version Manager
+# DVM - Developer Version Manager
 
-A simple script to manage the node version for an user.
+A simple script to manage the version of multiples environments for an user.
 
 ## Installation
 
-Run the `setup.sh`
+Clone this repository
 
 ```shell
-source ./setup.sh
+git clone https://github.com/rubensmg/dvm.git
+```
+
+Run the installation
+
+```shell
+./dvm -i
 ```
 
 ## Usage
 
-### Install a specific version
+### Node
+
+#### Install a specific version
 
 This process will download de binaries for an specific version from Node Repository
 
 ```shell
-nvm -i 10.2.1
+dvm node -i 13.0.1
 ```
 
-### Use a specific version
+#### Use a specific version
 
 This process will define the node, npm and npx executable in the user environment.
 
 ```shell
-nvm -s 13.0.1
+dvm node -s 13.0.1
 ```
 
 Check using the command
 
 ```shell
-$ nvm -c
+$ dvm node -c
 > Node Version: v13.0.1
 > NPM Version: 6.12.0
 > NPX Version: 6.12.0
 ```
 
-### List all available versions
+#### List all available versions
 
 ```shell
-nvm -l
+dvm node -l
 ```
 
 ## Contributing

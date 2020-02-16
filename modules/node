@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+set -e
+
+NODE_JS_REPO_DIST=https://nodejs.org/dist
+DVM_NODE_DIR="$DVM_LANGUAGES_DIR/node"
+DVM_NODE_DIR_CURRENT="$DVM_NODE_DIR/current"
+DVM_NODE_DIR_CURRENT_BIN="$DVM_NODE_DIR_CURRENT/bin"
+
+[[ ! -d $DVM_NODE_DIR ]] && mkdir $DVM_NODE_DIR
+[[ ! -d $DVM_NODE_DIR_CURRENT ]] && mkdir $DVM_NODE_DIR_CURRENT
+
+INSTALL() {
+    [[ -z $1 ]] && { LOG ERROR "You need pass the version of NodeJS"; exit 1; }
+    LOG INFO "Starting the installation of NodeJS $1"
+    local source_tar=$DVM_NODE_DIR/$1.tar.gz
+    [[ -e $source_tar ]] && { LOG WARN "The version $1 exists, you may need run 'dvm node -s $1' to use this version"; exit 0; }
+    http_code=$(curl -s -I -o /dev/null -w "%{http_code}" $NODE_JS_REPO_DIST/v$1)
+    [[ $http_code == "404" ]] && { LOG ERROR "The version $1 not exists"; exit 1; }
+    curl -s "https://nodejs.org/dist/v$1/node-v$1-linux-x64.tar.gz" -o $source_tar
+    # TODO: Checksum
+    LOG INFO "You may need run 'dvm node -s $1' to use this version"
+}
+
+SET() {
+    LOG INFO "Setting version $1"
+    local source_tar=$DVM_NODE_DIR/$1.tar.gz
+    [[ ! -e $source_tar ]] && { LOG ERROR "There is no version $1 installed, you need run 'dvm node -i <version>'"; exit 0; }
+    rm -rf $DVM_NODE_DIR_CURRENT/* && tar -xzf $source_tar --strip-components=1 -C $DVM_NODE_DIR_CURRENT
+    [[ $? != "0" ]]  && { LOG ERROR "Cannot set $1 to current"; exit 1; }
+    list_binaries=$(ls $DVM_NODE_DIR_CURRENT_BIN)
+    for binary in ${list_binaries[@]}; do
+        rm -f $BIN_DIR
+        ln -sf "$DVM_NODE_DIR_CURRENT_BIN/$binary" "$USER_DIR_BIN/$binary"
+    done
+    LOG INFO "Succcess to set version $1"
+}
+
+GET_CURRENT_VERSION() {
+    [[ ! -e $USER_DIR_BIN/node ]] && { LOG WARN "There is no version installed, you need run 'dvm node -i <version>'"; exit 0; }
+cat << EOF
+Node Version: $($USER_DIR_BIN/node --version)
+NPM Version: $($USER_DIR_BIN/npm --version)
+NPX Version: $($USER_DIR_BIN/npx --version)
+EOF
+}
+
+LIST_VERSIONS() {
+    curl -s $NODE_JS_REPO_DIST/ | awk -F '[<>]' '{ if ($3 ~ /^v/) {print substr(substr($3, 1, length($3)-1), 2, length($3)-1) }}' | less
+}
+
+HELP() {
+cat << EOF
+MODULE NAME
+    Node Version Manager
+
+USAGE
+    dvm node [OPTIONS] [ARGS]
+
+OPTIONS
+    -h, --help
+        Show this text
+    -c, --current
+        Get the version of node, npm and npx in using at the moment
+    -l, --list
+        List all available versions from Node Repository
+    -i, --install <version>
+        Install a version from Node Repository
+    -s, --set <version>
+        Set a version that was installed
+EOF
+}
+
+case $1 in
+--list|-l) LIST_VERSIONS ;;
+--install|-i) INSTALL $2 ;;
+--set|-s) SET $2 ;;
+--current|-c) GET_CURRENT_VERSION ;;
+--help|-h) HELP;;
+*) HELP ;;
+esac
