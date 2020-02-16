@@ -41,9 +41,7 @@ INSTALL() {
     esac
     [[ -z $url_hash ]] && { LOG ERROR "We don't have the hash to download this version of Java"; exit 1; }
     local url=$ORACLE_JAVA_REPO_DIST/$1$url_hash/jdk-$1_linux-x64_bin.tar.gz
-    
     http_code=$(curl -L -k -j -H "Cookie: oraclelicense=accept-securebackup-cookie" -s -I -o /dev/null -w "%{http_code}" $url)
-    echo $http_code
     [[ $http_code != "200" ]] && { LOG ERROR "The version $1 not exists"; exit 1; }
     curl -L -k -j -H "Cookie: oraclelicense=accept-securebackup-cookie" -s $url -o $source_tar
     # TODO: Checksum
