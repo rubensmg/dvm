@@ -51,6 +51,40 @@ $ dvm node -c
 dvm node -l
 ```
 
+### Java
+
+#### Install a specific version
+
+This process will download de binaries for an specific version from Oracle Repository
+
+```shell
+dvm java -i 13.0.6
+```
+
+#### Use a specific version
+
+This process will define the java's user environment.
+
+```shell
+dvm java -s 13.0.6
+```
+
+Check using the command
+
+```shell
+$ dvm java -c
+> java version "13.0.2" 2020-01-14
+> Java(TM) SE Runtime Environment (build 13.0.2+8)
+> Java HotSpot(TM) 64-Bit Server VM (build 13.0.2+8, mixed mode, sharing)
+> Java Version:
+```
+
+#### List all available versions
+
+```shell
+dvm java -l
+```
+
 ## Contributing
 
 Questions, comments, bug reports, and pull requests are all welcome.

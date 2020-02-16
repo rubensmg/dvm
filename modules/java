@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+
+# TODO: Remove the versions mock
+
+set -e
+
+ORACLE_JAVA_REPO_DIST=https://download.oracle.com/otn-pub/java/jdk
+DVM_JAVA_DIR="$DVM_LANGUAGES_DIR/java"
+DVM_JAVA_DIR_CURRENT="$DVM_JAVA_DIR/current"
+DVM_JAVA_DIR_CURRENT_BIN="$DVM_JAVA_DIR_CURRENT/bin"
+
+GRADLE_REPO_DIST=https://services.gradle.org/distributions
+DVM_GRADLE_DIR="$DVM_JAVA_DIR/gradle"
+DVM_GRADLE_DIR_CURRENT="$DVM_GRADLE_DIR/current"
+DVM_GRADLE_DIR_CURRENT_BIN="$DVM_GRADLE_DIR_CURRENT/bin"
+
+[[ ! -d $DVM_JAVA_DIR ]] && mkdir $DVM_JAVA_DIR
+[[ ! -d $DVM_JAVA_DIR_CURRENT ]] && mkdir $DVM_JAVA_DIR_CURRENT
+
+[[ ! -d $DVM_GRADLE_DIR ]] && mkdir $DVM_GRADLE_DIR
+[[ ! -d $DVM_GRADLE_DIR_CURRENT ]] && mkdir $DVM_GRADLE_DIR_CURRENT
+
+LIST() {
+cat << EOF
+13.0.2
+11.0.6
+8u241
+EOF
+}
+
+INSTALL() {
+    [[ -z $1 ]] && { LOG ERROR "You need pass the version of Java JDK SE"; exit 1; }
+    LOG INFO "Starting the installation of Java $1"
+    local source_tar=$DVM_JAVA_DIR/$1.tar.gz
+    [[ -e $source_tar ]] && { LOG WARN "The version $1 exists, you may need run 'dvm java -s $1' to use this version"; exit 0; }
+    url_hash=""
+    case $1 in
+    13.0.2) url_hash="+8/d4173c853231432d94f001e99d882ca7" ;;
+    11.0.6) url_hash="+8/90eb79fb590d45c8971362673c5ab495" ;;
+    8u241) url_hash="-b07/1f5b5a70bf22433b84d0e960903adac8" ;;
+    esac
+    [[ -z $url_hash ]] && { LOG ERROR "We don't have the hash to download this version of Java"; exit 1; }
+    local url=$ORACLE_JAVA_REPO_DIST/$1$url_hash/jdk-$1_linux-x64_bin.tar.gz
+    
+    http_code=$(curl -L -k -j -H "Cookie: oraclelicense=accept-securebackup-cookie" -s -I -o /dev/null -w "%{http_code}" $url)
+    echo $http_code
+    [[ $http_code != "200" ]] && { LOG ERROR "The version $1 not exists"; exit 1; }
+    curl -L -k -j -H "Cookie: oraclelicense=accept-securebackup-cookie" -s $url -o $source_tar
+    # TODO: Checksum
+    LOG INFO "You may need run 'dvm node -s $1' to use this version"
+}
+
+SET() {
+    LOG INFO "Setting version $1"
+    local source_tar=$DVM_JAVA_DIR/$1.tar.gz
+    [[ ! -e $source_tar ]] && { LOG ERROR "There is no version $1 installed, you need run 'dvm java -i <version>'"; exit 0; }
+    rm -rf $DVM_JAVA_DIR_CURRENT/* && tar -xzf $source_tar --strip-components=1 -C $DVM_JAVA_DIR_CURRENT
+    [[ $? != "0" ]]  && { LOG ERROR "Cannot set $1 to current"; exit 1; }
+    list_binaries=$(ls $DVM_JAVA_DIR_CURRENT_BIN)
+    for binary in ${list_binaries[@]}; do
+        rm -f "$USER_DIR_BIN/$binary"
+        ln -sf "$DVM_JAVA_DIR_CURRENT_BIN/$binary" "$USER_DIR_BIN/$binary"
+    done
+    LOG INFO "Succcess to set version $1"
+}
+
+GET_CURRENT_VERSION() {
+    [[ ! -e $USER_DIR_BIN/java ]] && { LOG WARN "There is no version installed, you need run 'dvm java -i <version>'"; exit 0; }
+cat << EOF
+Java Version: $($USER_DIR_BIN/java -version)
+EOF
+}
+
+LIST_GRADLE() {
+    curl -s -L $GRADLE_REPO_DIST | grep "bin.zip" | awk -F '[<>]' '{ print $3 }' | grep bin.zip$ | awk -F '-' '{print $2}'
+}
+
+INSTALL_GRADLE() {
+    LOG INFO "Installing gradle..."
+    [[ ! -d $DVM_JAVA_DIR_CURRENT_BIN ]] && { LOG WARN "There is no version installed, you need run 'dvm java -i <version>'"; exit 0; }
+    local source_zip=$DVM_GRADLE_DIR/$1.zip
+    http_code=$(curl -s -L -I -o /dev/null -w "%{http_code}" $GRADLE_REPO_DIST/gradle-$1-bin.zip)
+    [[ $http_code != "200" ]] && { LOG ERROR "The version $1 not exists"; exit 1; }
+    curl -s -L $GRADLE_REPO_DIST/gradle-$1-bin.zip -o $source_zip
+    [[ -d $DVM_GRADLE_DIR_CURRENT ]] && rm -rf $DVM_GRADLE_DIR_CURRENT/*
+    unzip -qq $source_zip -d $DVM_GRADLE_DIR_CURRENT/
+    mv $DVM_GRADLE_DIR_CURRENT/gradle-$1/* $DVM_GRADLE_DIR_CURRENT/
+    rm -rf $DVM_GRADLE_DIR_CURRENT/gradle-$1/*
+    list_binaries=$(ls $DVM_GRADLE_DIR_CURRENT_BIN)
+    for binary in ${list_binaries[@]}; do
+        rm -f "$USER_DIR_BIN/$binary"
+        ln -sf "$DVM_GRADLE_DIR_CURRENT_BIN/$binary" "$USER_DIR_BIN/$binary"
+    done
+    LOG INFO "Succcess to install gradle $1"
+}
+
+HELP() {
+cat << EOF
+MODULE NAME
+    Java Version Manager
+
+USAGE
+    dvm java [OPTIONS] [ARGS]
+
+OPTIONS
+    -h, --help
+        Show this text
+    -c, --current
+        Get the version of Java
+    -l, --list
+        List all available versions
+    -i, --install <version>
+        Install a JDK SE version from Oracle Repository
+    -s, --set <version>
+        Set a version that was installed
+    --list-gradle
+        List all versions
+    --install-gradle <version<
+        Install a version from Gradle Repository
+EOF
+}
+
+case $1 in
+--install|-i) INSTALL $2 ;;
+--current|-c) GET_CURRENT_VERSION ;;
+--set|-s) SET $2 ;;
+--list|-l) LIST ;;
+--list-gradle) LIST_GRADLE ;;
+--install-gradle) INSTALL_GRADLE $2 ;;
+*) HELP ;;
+esac

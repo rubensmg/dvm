@@ -32,6 +32,7 @@ USAGE
     
 MODULES
     node
+    java
 
 OPTIONS
     -h, --help
