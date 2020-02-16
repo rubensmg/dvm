@@ -115,7 +115,7 @@ OPTIONS
         Set a version that was installed
     --list-gradle
         List all versions
-    --install-gradle <version<
+    --install-gradle <version>
         Install a version from Gradle Repository
 EOF
 }
