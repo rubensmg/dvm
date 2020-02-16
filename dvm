@@ -14,7 +14,7 @@ LOG() {
 INSTALL() {
     [[ ! -d $DVM_BASE_DIR ]] && mkdir $DVM_BASE_DIR
     [[ ! -d $DVM_LANGUAGES_DIR ]] && mkdir $DVM_LANGUAGES_DIR
-    [[ ! -d $USER_DIR_BIN ]] && { mkdir -p $USER_DIR_BIN; echo 'export PATH="$PATH:$HOME/.local/bin' >> $HOME/.bashrc; }
+    [[ ! -d $USER_DIR_BIN ]] && { mkdir -p $USER_DIR_BIN; echo 'export PATH="$PATH:$HOME/.local/bin"' >> $HOME/.bashrc; }
     rm -rdf $DVM_BASE_DIR/modules && cp -ar ./modules $DVM_BASE_DIR/
     rm -f $DVM_BASE_DIR/dvm && cp -ar ./dvm $DVM_BASE_DIR/
     chmod 744 $DVM_BASE_DIR/dvm
