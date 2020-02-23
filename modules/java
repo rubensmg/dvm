@@ -14,11 +14,19 @@ DVM_GRADLE_DIR="$DVM_JAVA_DIR/gradle"
 DVM_GRADLE_DIR_CURRENT="$DVM_GRADLE_DIR/current"
 DVM_GRADLE_DIR_CURRENT_BIN="$DVM_GRADLE_DIR_CURRENT/bin"
 
+MAVEN_REPO_DIST=http://mirror.nbtelecom.com.br/apache/maven/maven-3
+DVM_MAVEN_DIR="$DVM_JAVA_DIR/maven"
+DVM_MAVEN_DIR_CURRENT="$DVM_MAVEN_DIR/current"
+DVM_MAVEN_DIR_CURRENT_BIN="$DVM_MAVEN_DIR_CURRENT/bin"
+
 [[ ! -d $DVM_JAVA_DIR ]] && mkdir $DVM_JAVA_DIR
 [[ ! -d $DVM_JAVA_DIR_CURRENT ]] && mkdir $DVM_JAVA_DIR_CURRENT
 
 [[ ! -d $DVM_GRADLE_DIR ]] && mkdir $DVM_GRADLE_DIR
 [[ ! -d $DVM_GRADLE_DIR_CURRENT ]] && mkdir $DVM_GRADLE_DIR_CURRENT
+
+[[ ! -d $DVM_MAVEN_DIR ]] && mkdir $DVM_MAVEN_DIR
+[[ ! -d $DVM_MAVEN_DIR_CURRENT ]] && mkdir $DVM_MAVEN_DIR_CURRENT
 
 LIST() {
 cat << EOF
@@ -70,11 +78,11 @@ EOF
 }
 
 LIST_GRADLE() {
-    curl -s -L $GRADLE_REPO_DIST | grep "bin.zip" | awk -F '[<>]' '{ print $3 }' | grep bin.zip$ | awk -F '-' '{print $2}'
+    curl -s -L $GRADLE_REPO_DIST | grep "bin.zip" | awk -F '[<>]' '{ print $3 }' | grep bin.zip$ | awk -F '-' '{print $2}' | less
 }
 
 INSTALL_GRADLE() {
-    LOG INFO "Installing gradle..."
+    LOG INFO "Installing gradle $1..."
     [[ ! -d $DVM_JAVA_DIR_CURRENT_BIN ]] && { LOG WARN "There is no version installed, you need run 'dvm java -i <version>'"; exit 0; }
     local source_zip=$DVM_GRADLE_DIR/$1.zip
     http_code=$(curl -s -L -I -o /dev/null -w "%{http_code}" $GRADLE_REPO_DIST/gradle-$1-bin.zip)
@@ -90,6 +98,31 @@ INSTALL_GRADLE() {
         ln -sf "$DVM_GRADLE_DIR_CURRENT_BIN/$binary" "$USER_DIR_BIN/$binary"
     done
     LOG INFO "Succcess to install gradle $1"
+}
+
+LIST_MAVEN() {
+    curl -s $MAVEN_REPO_DIST/ | awk -F '[<>]' '{ print substr($5, 1, length($5)-1)}' | grep '.' | less
+}
+
+INSTALL_MAVEN() {
+    LOG INFO "Installing maven $1..."
+    [[ ! -d $DVM_JAVA_DIR_CURRENT_BIN ]] && { LOG WARN "There is no version installed, you need run 'dvm java -i <version>'"; exit 0; }
+    local url=$MAVEN_REPO_DIST/$1/binaries/apache-maven-$1-bin.tar.gz
+    local source_tar=$DVM_MAVEN_DIR/$1.tar.gz
+    http_code=$(curl -s -I -o /dev/null -w "%{http_code}" $url)
+    [[ $http_code != "200" ]] && { LOG ERROR "The version $1 not exists"; exit 1; }
+    curl -s $url -o $source_tar
+    [[ -d $DVM_MAVEN_DIR_CURRENT ]] && rm -rf $DVM_MAVEN_DIR_CURRENT/*
+    tar -xzf $source_tar -C $DVM_MAVEN_DIR_CURRENT/
+    mv $DVM_MAVEN_DIR_CURRENT/apache-maven-$1/* $DVM_MAVEN_DIR_CURRENT/
+    rm -rf $DVM_MAVEN_DIR_CURRENT/apache-maven-$1
+    list_binaries=$(ls $DVM_MAVEN_DIR_CURRENT_BIN)
+    for binary in ${list_binaries[@]}; do
+        [[ ! -x "$DVM_MAVEN_DIR_CURRENT_BIN/$binary" ]] && continue
+        rm -f "$USER_DIR_BIN/$binary"
+        ln -sf "$DVM_MAVEN_DIR_CURRENT_BIN/$binary" "$USER_DIR_BIN/$binary"
+    done
+    LOG INFO "Succcess to install maven $1"
 }
 
 HELP() {
@@ -115,6 +148,10 @@ OPTIONS
         List all versions
     --install-gradle <version>
         Install a version from Gradle Repository
+    --list-maven
+        List all versions
+    --install-maven <version>
+        Install a version from Maven Repository
 EOF
 }
 
@@ -125,5 +162,7 @@ case $1 in
 --list|-l) LIST ;;
 --list-gradle) LIST_GRADLE ;;
 --install-gradle) INSTALL_GRADLE $2 ;;
+--list-maven) LIST_MAVEN ;;
+--install-maven) INSTALL_MAVEN $2 ;;
 *) HELP ;;
 esac
