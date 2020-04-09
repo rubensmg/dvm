@@ -58,7 +58,7 @@ dvm node -l
 This process will download de binaries for an specific version from Oracle Repository
 
 ```shell
-dvm java -i 13.0.6
+dvm java -i 13.0.2
 ```
 
 #### Use a specific version
@@ -66,7 +66,7 @@ dvm java -i 13.0.6
 This process will define the java's user environment.
 
 ```shell
-dvm java -s 13.0.6
+dvm java -s 13.0.2
 ```
 
 Check using the command
