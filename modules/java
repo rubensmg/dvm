@@ -53,7 +53,7 @@ INSTALL() {
     [[ $http_code != "200" ]] && { LOG ERROR "The version $1 not exists"; exit 1; }
     curl -L -k -j -H "Cookie: oraclelicense=accept-securebackup-cookie" -s $url -o $source_tar
     # TODO: Checksum
-    LOG INFO "You may need run 'dvm node -s $1' to use this version"
+    LOG INFO "You may need run 'dvm java -s $1' to use this version"
 }
 
 SET() {
