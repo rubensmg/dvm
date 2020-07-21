@@ -31,7 +31,7 @@ DVM_MAVEN_DIR_CURRENT_BIN="$DVM_MAVEN_DIR_CURRENT/bin"
 LIST() {
 cat << EOF
 13.0.2
-11.0.7
+11.0.8
 8u241
 EOF
 }
@@ -44,7 +44,7 @@ INSTALL() {
     url_hash=""
     case $1 in
     13.0.2) url_hash="+8/d4173c853231432d94f001e99d882ca7" ;;
-    11.0.7) url_hash="%2B8/8c7daf89330c48f0b9e32f57169f7bac" ;;
+    11.0.8) url_hash="%2B10/dc5cf74f97104e8eac863698146a7ac3" ;;
     8u241) url_hash="-b07/1f5b5a70bf22433b84d0e960903adac8" ;;
     esac
     [[ -z $url_hash ]] && { LOG ERROR "We don't have the hash to download this version of Java"; exit 1; }
